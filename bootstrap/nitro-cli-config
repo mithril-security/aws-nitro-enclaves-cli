@@ -450,19 +450,6 @@ function driver_insert {
     local log_file="/var/log/$RES_DIR_NAME/nitro_enclaves.log"
     local loop_idx=0
 
-    # Remove an older driver if it is inserted.
-    if [ "$(lsmod | grep -cw $DRIVER_NAME)" -gt 0 ]; then
-        driver_remove
-    fi
-
-    print "Inserting the driver..."
-
-    # Insert the new driver.
-    sudo_run "insmod $DRIVER_NAME.ko" || fail "Failed to insert driver."
-
-    # Verify that the new driver has been inserted.
-    [ "$(lsmod | grep -cw $DRIVER_NAME)" -eq 1 ] || fail "The driver is not visible."
-
     print "Configuring the device file..."
 
     # Create the NE group if it doesn't already exist.
@@ -476,11 +463,11 @@ function driver_insert {
     # Define the udev rules file. The string will be expanded twice (once below and the second time when it is
     # passed as an argument to $SHELL) and we need the double-quotes to make it into the rules file; hence, we
     # need to provide them pre-pre-expanded, i.e <\\\"> (since these expand to <\"> which expands to <">).
-    sudo_run "echo KERNEL==\\\"$DRIVER_NAME\\\" SUBSYSTEM==\\\"misc\\\" OWNER=\\\"root\\\" GROUP=\\\"$NE_GROUP_NAME\\\" MODE=\\\"0660\\\" > /etc/udev/rules.d/$UDEV_RULES_FILE" || fail "Could not write udev rules file."
+    # sudo_run "echo KERNEL==\\\"$DRIVER_NAME\\\" SUBSYSTEM==\\\"misc\\\" OWNER=\\\"root\\\" GROUP=\\\"$NE_GROUP_NAME\\\" MODE=\\\"0660\\\" > /etc/udev/rules.d/$UDEV_RULES_FILE" || fail "Could not write udev rules file."
 
-    # Trigger the udev rule.
-    sudo_run "udevadm control --reload"
-    sudo_run "udevadm trigger /dev/$DRIVER_NAME" || fail "Could not apply the NE udev rule."
+    # # Trigger the udev rule.
+    # sudo_run "udevadm control --reload"
+    # sudo_run "udevadm trigger /dev/$DRIVER_NAME" || fail "Could not apply the NE udev rule."
     sudo_run "chgrp $NE_GROUP_NAME /dev/$DRIVER_NAME" || fail "Could not change the group owner of the NE misc device file."
 
     # The previous operation may need some time to complete.
@@ -501,7 +488,8 @@ function driver_insert {
 
     # We configure the relevant resource directories.
     print "Configuring the resource directories..."
-    configure_resource_directories
+    configure_resource_directory "/var/log/$RES_DIR_NAME"
+    # configure_resource_directories
     print "Done."
 
     # Lastly, we touch the log file so that any user may start a CLI instance at any time.
